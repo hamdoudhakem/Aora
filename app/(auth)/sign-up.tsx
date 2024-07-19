@@ -13,7 +13,7 @@ import { UsersType } from "lib/types";
 export default function SignUp() {
   const { setUser, setLoggedIn } : { 
     setUser : (user : Models.Document & UsersType) => void, 
-    setLoggedIn 
+    setLoggedIn : (loggedIn : boolean) => void
 
   }  = useGlobalContext();   
    

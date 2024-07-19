@@ -1,5 +1,5 @@
-import { View, Text, FlatList, TouchableOpacity, Image } from "react-native";
-import React, { useEffect, useState } from "react";
+import { View, FlatList, TouchableOpacity, Image, RefreshControl } from "react-native";
+import React, { useState } from "react";
 import * as appwrite from 'lib/appwrite'
 import { Models } from 'react-native-appwrite';
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,16 +17,24 @@ const profile = () => {
     setLoggedIn : (bool : boolean) => void,
   } = useGlobalContext();  
 
-  const {data: posts} = useAppwrite(
+  const [refreshing, setRefreshing] = useState(false)
+
+  const {data: posts, refetch} = useAppwrite(
     () => appwrite.getUserPosts(user.$id)
   );
 
+  const onRefresh = async () => {
+    setRefreshing(true)
+    await refetch();
+    setRefreshing(false)
+  }
+
   const logout = async () => {
+    router.replace('/sign-in')
+
     const session = await appwrite.logout();
     setUser(null);
     setLoggedIn(false);
-
-    router.replace('/sign-in')
   }
  
   return (
@@ -34,7 +42,7 @@ const profile = () => {
       <FlatList 
         data={posts}
         keyExtractor={(item) => item.$id.toString()}
-        renderItem={({item}) => <VideoCard post={item} />}
+        renderItem={({item}) => <VideoCard post={item} user={user} />}
         keyboardShouldPersistTaps='handled'
 
         ListHeaderComponent={() => (
@@ -96,6 +104,7 @@ const profile = () => {
           />
         )}
 
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh}/>}
       />
     </SafeAreaView>
   );

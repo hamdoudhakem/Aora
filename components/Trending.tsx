@@ -1,5 +1,5 @@
 import {useState} from 'react'
-import { View, Text, FlatList, Touchable, TouchableOpacity,Image, ImageBackground, ViewToken } from 'react-native'
+import { FlatList, TouchableOpacity,Image, ImageBackground, ViewToken } from 'react-native'
 import {Models} from 'react-native-appwrite'
 import { VideosType } from 'lib/types'
 import * as Animatable from 'react-native-animatable'

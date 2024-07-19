@@ -1,16 +1,34 @@
 import { View, Text, Image, TouchableOpacity } from 'react-native'
-import React, {useState} from 'react'
+import React, {useEffect, useState} from 'react'
 import {Models} from 'react-native-appwrite'
-import {VideosType} from 'lib/types'
-import {images, icons} from '../constants'
+import {VideosType, UsersType} from 'lib/types'
+import {icons} from '../constants'
+import * as appwrite from 'lib/appwrite'
 import { Video, ResizeMode, AVPlaybackStatusSuccess } from 'expo-av'
 
 
-const VideoCard = ({post} : {post : VideosType & Models.Document}) => {    
-    const { title, thumbnail, video, creator:{username, avatar}}  = post;     
+const VideoCard = ({post, user, likedState} :     
+    {
+        post : VideosType & Models.Document,
+        user : UsersType & Models.Document,
+        likedState? : boolean
+    }
+) => {    
+    const { title, thumbnail, video, creator:{username, avatar}}  = post   
+
+    const CheckIfLiked = () => {
+        return likedState ? likedState : post.liked &&         
+            post.liked.find((likedUser) => likedUser.$id === user.$id) !== undefined
+    }
 
     const [play, setPlay] = useState(false)
+    const [liked, setLiked] = useState(CheckIfLiked())    
 
+    useEffect(() => {
+        setLiked(CheckIfLiked())
+        console.log('I Will Check Liked again and it seems its', CheckIfLiked())
+    }, [post])   
+    
     return ( 
         <View className='flex-col items-center px-4 mb-14'>
             <View className='flex-row gap-3 items-start'>
@@ -36,12 +54,36 @@ const VideoCard = ({post} : {post : VideosType & Models.Document}) => {
                     </View>
                 </View>
 
-                <View className='pt-2'>
-                    <Image source={icons.menu} 
-                        className='w-5 h-5'
-                        resizeMode='contain' 
-                    />
-                </View>
+                {!liked ?
+                   <TouchableOpacity 
+                        onPress={() => {
+                            setLiked(true)
+                            appwrite.bookmarkVideo(post)
+                        }}
+                    >
+                        <View className='pt-2'>
+                            <Image source={icons.heart2} 
+                                className='w-5 h-5'
+                                resizeMode='contain' 
+                            />
+                        </View>
+                    </TouchableOpacity>
+                    :                    
+                    <TouchableOpacity 
+                        onPress={() => {
+                            setLiked(false)
+                            appwrite.unBookmarkVideo(post)
+                        }}
+                    >
+                        <View className='pt-2'>
+                            <Image source={icons.heartFilled} 
+                                className='w-5 h-5'
+                                resizeMode='contain' 
+                            />
+                        </View>
+                    </TouchableOpacity>
+                }                
+                
             </View>
 
             {play ? (

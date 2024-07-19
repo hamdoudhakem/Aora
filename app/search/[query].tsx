@@ -5,8 +5,13 @@ import { useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { EmptyState, SearchInput, VideoCard } from "components";
 import { useAppwrite } from "lib/hooks";
+import { useGlobalContext } from "context/GlobalProvider";
+import { UsersType } from "lib/types";
+import { Models } from "react-native-appwrite";
 
 const search = () => {
+  const { user } : { user : Models.Document & UsersType } = useGlobalContext();
+
   const { query }= useLocalSearchParams();  
   const { data: posts, refetch } = useAppwrite(
     () => appwrite.searchPosts(query as string)
@@ -21,7 +26,7 @@ const search = () => {
       <FlatList 
         data={posts}
         keyExtractor={(item) => item.$id.toString()}
-        renderItem={({item}) => <VideoCard post={item} />}
+        renderItem={({item}) => <VideoCard post={item} user={user}/>}
         keyboardShouldPersistTaps='handled'
 
         ListHeaderComponent={() => (

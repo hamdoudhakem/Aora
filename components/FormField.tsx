@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity, Image,StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image } from "react-native";
 import React, { useState } from "react";
 import { icons } from "../constants";
 import { styled, withExpoSnack  } from "nativewind";
@@ -31,12 +31,13 @@ const FormField = ({
        bg-black-100 rounded-2xl focus:border-secondary items-center flex-row"                   
       >
         <TextInput
-          className="flex-1 font-psemibold text-base text-white"                           
+          className="flex-1 font-psemibold text-base text-white min-w-[50px]"                           
           value={value}
           placeholder={placeholder}
           placeholderTextColor="#7b7b8b"
           onChangeText={handleTextChange}          
-          secureTextEntry={title === "Password" && !showpass}
+          secureTextEntry={title === "Password" && !showpass}          
+          numberOfLines={1}
         />
 
         {title === "Password" ? (

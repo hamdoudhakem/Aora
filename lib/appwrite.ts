@@ -1,6 +1,15 @@
-import { StatusBar } from 'expo-status-bar';
-import { Alert } from 'react-native';
-import sdk, { Client, Account, ID, Models, Avatars, Databases, Query } from 'react-native-appwrite';
+import { VideosType, UsersType } from 'lib/types'
+import sdk, {
+  Client, 
+  Account, 
+  ID, 
+  Models, 
+  Avatars, 
+  Databases, 
+  Query, 
+  Storage,
+  ImageGravity,  
+} from 'react-native-appwrite';
 
 const appwriteConfig = {
   endpoint: 'https://cloud.appwrite.io/v1',
@@ -22,6 +31,7 @@ client
 const account = new Account(client);
 const avatar = new Avatars(client);
 const databases = new Databases(client);
+const storage = new Storage(client)
 let session : Models.Session | null = null;
 
 export async function login(email: string, password: string) {  
@@ -35,7 +45,7 @@ export async function register(email: string, password: string, username: string
     email, 
     password, 
     username
-  )   
+  )    
 
   const avatarUrl = await avatar.getInitials()
 
@@ -94,7 +104,7 @@ export async function getPosts() {
   try{
     const posts = await databases.listDocuments(
       appwriteConfig.dbId,
-      appwriteConfig.videosCollectionId
+      appwriteConfig.videosCollectionId     
     )
 
     return posts.documents;
@@ -142,7 +152,8 @@ export async function getUserPosts(userId : string) {
       appwriteConfig.dbId,
       appwriteConfig.videosCollectionId,
       [
-        Query.equal('creator', userId),         
+        Query.equal('creator', userId), 
+        Query.orderDesc('$createdAt'),        
       ]
     )
 
@@ -151,4 +162,182 @@ export async function getUserPosts(userId : string) {
     console.log(err)
   }
 }  
+
+export async function getFilePreview(fileId, fileType : string) {
+  let fileUrl;
+
+  try{
+    if(fileType === 'video'){
+      fileUrl = storage.getFileView(appwriteConfig.storageId, fileId);
+    }else if (fileType === 'image'){
+      fileUrl = storage.getFilePreview(
+        appwriteConfig.storageId, 
+        fileId, 2000, 2000, 
+        ImageGravity.Top, 100
+      );
+    }else{
+      throw new Error('Invalid file type')
+    }
+
+    if(!fileUrl) throw new Error('FileURL for either Image or Video is null')
+
+    return fileUrl;
+  }catch(err){
+    throw new Error(err)
+  }
+}
+
+export async function uploadFile(file, fileType : string) {
+  if(!file){
+    return;
+  }
+
+  const asset = {    
+    name: file.fileName,
+    type: file.mimeType,
+    size: file.filesize,
+    uri: file.uri
+  }
+
+  try{
+
+    const uploadedFile = await storage.createFile(
+      appwriteConfig.storageId,
+      ID.unique(),
+      asset
+    );
+
+    const fileUrl = await getFilePreview(uploadedFile.$id, fileType)    
+
+    return fileUrl;
+  }catch(err){
+    throw new Error(err)
+  }
+}
+
+export async function createVideo(form : VideosType) {
+  try{
+    const [thumbnailUrl, videoUrl] = await Promise.all([
+      uploadFile(form.thumbnail, 'image'),
+      uploadFile(form.video, 'video')
+    ])
+
+    const newPost = await databases.createDocument(
+      appwriteConfig.dbId,
+      appwriteConfig.videosCollectionId,
+      ID.unique(),
+      {
+        title: form.title,
+        prompt: form.prompt,
+        thumbnail: thumbnailUrl,
+        video: videoUrl,
+        creator: form.creator.$id
+      }
+    )
+
+    return newPost;
+  }catch(err){
+    throw new Error(err)
+  }
+}
+
+export async function bookmarkVideo(video : Models.Document & VideosType) {
+  try{
+   
+    const user : Models.Document & UsersType = await getUser()
+
+    console.log('I Will start Adding it from the Bookmarked')
+
+    const prevLikedIds = video.liked ? 
+      video.liked.map(likedUser => likedUser.$id) : []; 
+
+    const updatedVideo = await databases.updateDocument(
+      appwriteConfig.dbId,
+      appwriteConfig.videosCollectionId,
+      video.$id,
+      {
+        liked: [...prevLikedIds, user.$id]
+      }
+    )
+
+    const prevBookmarked = user.bookmarked ? 
+      user.bookmarked.map(bookmarked => bookmarked.$id) : [];
+
+    const updatedUser = await databases.updateDocument(
+      appwriteConfig.dbId,
+      appwriteConfig.userCollectionId,
+      user.$id,
+      {
+        bookmarked: [...prevBookmarked, video.$id]
+      }
+    )
+
+    console.log('I Added it from the Bookmarked')
+
+    return updatedVideo
+    
+  }catch(err){
+    throw new Error(err)
+  }
+}
+
+export async function unBookmarkVideo(video : Models.Document & VideosType) {
+  try{
+    
+    //Get the Latest data about the User
+    const user : Models.Document & UsersType = await getUser()    
+
+    //Get the Latest Data about the video or else the liked array will be empty
+    const updatedVideo = await databases.listDocuments(
+      appwriteConfig.dbId,
+      appwriteConfig.videosCollectionId,
+      [
+        Query.equal('$id', video.$id)
+      ]
+    )
+
+    console.log('I Will start deleting it from the Bookmarked')
+
+    const filteredLiked : UsersType[] = updatedVideo.documents[0].liked.filter(likedUser => likedUser.$id !== user.$id);   
+
+    const updatedLiked = await databases.updateDocument(
+      appwriteConfig.dbId,
+      appwriteConfig.videosCollectionId,
+      video.$id,
+      {
+        liked: filteredLiked
+      }
+    )
+
+    const filteredBookmarks : VideosType[] = user.bookmarked.filter(likedVideo => likedVideo.$id !== video.$id);
+
+    const updatedBoormaks = await databases.updateDocument(
+      appwriteConfig.dbId,
+      appwriteConfig.userCollectionId,
+      user.$id,
+      {
+        bookmarked: filteredBookmarks
+      }
+    )
+
+    console.log('I deleted it from the Bookmarked')
+
+    return updatedLiked
+    
+  }catch(err){
+    throw new Error(err)
+  }
+}
+
+export async function getUserBookmarkedVideos() {
+  try{
+    
+    const user : Models.Document & UsersType = await getUser();  
+
+    return [user] ;
+    
+  }catch(err){
+    throw new Error(err)
+  }
+}
 
