@@ -1,16 +1,20 @@
-import { Image, ScrollView, StatusBar, Text, View } from "react-native";
+import { Image, ScrollView, StatusBar, Text, View, LogBox } from "react-native";
 import { Redirect, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { images } from "../constants";
-import {CustomButton} from "../components";
-import { useGlobalContext } from 'context/GlobalProvider';
+import { CustomButton } from "../components";
+import { useGlobalContext } from "context/GlobalProvider";
+
+// Ignore "NativeEventEmitter" log notification caused by Notifee
+// not updating to the latest version of React Native
+LogBox.ignoreLogs(['new NativeEventEmitter']); 
 
 export default function Page() {
-  const {isLoading, loggedIn} = useGlobalContext()
+  const { isLoading, loggedIn } = useGlobalContext();
 
-  if(!isLoading && loggedIn) return <Redirect href="/home" />
+  if (!isLoading && loggedIn) return <Redirect href="/home" />;
 
-  return (      
+  return (
     <>
       <StatusBar barStyle="light-content" />
       <SafeAreaView className="h-full bg-primary">
@@ -40,8 +44,8 @@ export default function Page() {
             </View>
 
             <Text className="text-sm font-pregular text-gray-100 mt-7 text-center">
-              Where Creativity meets innovation: Embark on a journey of limitless
-              exploration with Aora
+              Where Creativity meets innovation: Embark on a journey of
+              limitless exploration with Aora
             </Text>
 
             <CustomButton
@@ -50,8 +54,8 @@ export default function Page() {
               handlePress={() => router.push("./sign-in")}
             />
           </View>
-        </ScrollView>      
-     </SafeAreaView> 
-    </>    
+        </ScrollView>
+      </SafeAreaView>
+    </>
   );
 }
