@@ -13,18 +13,16 @@ Aora is a React Native application that allows users to share and explore AI-gen
 To get started with Aora, follow these steps:
 1. Clone the repository:
 ```
-git clone https://github.com/yourusername/your-repo-name.git
-cd your-repo-name
+git clone https://github.com/hamdoudhakem/Aora.git
+cd Aora
 ```
 
 2. Install dependencies:
 ```
-npm install
+yarn install
 ```
 
 3. Run the app:
 ```
-npm expo start
+yarn android (or ios)
 ```
-
-Now make sure to install the **Expo Go** app on either your device or emulator and scan the displayed **QR code** to acces the app
