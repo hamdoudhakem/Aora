@@ -1,10 +1,4 @@
-import {
-  View,
-  Text,
-  FlatList,
-  Image,
-  RefreshControl,
-} from "react-native";
+import { View, Text, FlatList, Image, RefreshControl } from "react-native";
 import React, { useEffect, useState } from "react";
 import { images } from "../../constants";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,7 +8,18 @@ import { Models } from "react-native-appwrite";
 import { useAppwrite } from "lib/hooks";
 import { useGlobalContext } from "context/GlobalProvider";
 import { UsersType } from "lib/types";
-import notifee, { RepeatFrequency, TimestampTrigger, TriggerType } from "@notifee/react-native";
+import notifee, {
+  RepeatFrequency,
+  TimestampTrigger,
+  TriggerType,
+} from "@notifee/react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
 
 const home = () => {
   const { user }: { user: Models.Document & UsersType } = useGlobalContext();
@@ -30,6 +35,10 @@ const home = () => {
     setRefreshing(false);
   };
 
+  const waveRotation = useSharedValue(0);
+  const wavePosX = useSharedValue(0);
+  const wavePosY = useSharedValue(0);
+
   useEffect(() => {
     async function onCreateTriggerNotification() {
       // Request permissions (required for iOS)
@@ -41,24 +50,25 @@ const home = () => {
         name: "Default Channel",
       });
 
-      const date = new Date(Date.now());      
+      const date = new Date(Date.now());
       date.setMinutes(date.getMinutes() + 2);
 
-      console.log('date', date)
-  
+      console.log("date", date);
+
       // Create a time-based trigger
       const trigger: TimestampTrigger = {
         type: TriggerType.TIMESTAMP,
         timestamp: date.getTime(),
         repeatFrequency: RepeatFrequency.DAILY,
       };
-  
+
       // Create a trigger notification
       await notifee.createTriggerNotification(
         {
-          title: 'Discover new AI-Generated videos!',
-          body: 'Why don\'t you take a look at the recent uploads? \n'+
-            'PS: this notification will run 3 mins after each time Aora is opened',
+          title: "Discover new AI-Generated videos!",
+          body:
+            "Why don't you take a look at the recent uploads? \n" +
+            "PS: this notification will run 3 mins after each time Aora is opened",
           android: {
             channelId,
 
@@ -68,24 +78,60 @@ const home = () => {
             },
           },
         },
-        trigger,
+        trigger
       );
     }
 
-    notifee.getTriggerNotificationIds().then(
-      async (ids) => {
-        console.log('All trigger notifications: ', ids)
-        if(ids.length > 0) {
-          await notifee.cancelTriggerNotifications();
-        }
-
-        onCreateTriggerNotification()
+    notifee.getTriggerNotificationIds().then(async (ids) => {
+      console.log("All trigger notifications: ", ids);
+      if (ids.length > 0) {
+        await notifee.cancelTriggerNotifications();
       }
-    );
-  }, [])  
 
-  return  ( 
-   <SafeAreaView className="bg-primary h-full">
+      onCreateTriggerNotification();
+    });
+
+    const rotationConfig = {
+      duration: 300,
+      easing: Easing.inOut(Easing.ease),
+    };
+
+    const posConfig = {
+      duration: 300,
+      easing: Easing.linear,
+    };
+
+    const waveDegree = 50;
+    const wavePosXVal = 3;
+
+    waveRotation.value = withTiming(waveDegree, rotationConfig, () => {
+      waveRotation.value = withTiming(0, rotationConfig, () => {
+        waveRotation.value = withTiming(waveDegree, rotationConfig, () => {
+          waveRotation.value = withTiming(0, rotationConfig);
+          wavePosX.value = withTiming(0, posConfig);
+        });
+        wavePosX.value = withTiming(wavePosXVal, posConfig);
+      });
+      wavePosX.value = withTiming(0, posConfig);
+    });
+
+    wavePosX.value = withTiming(wavePosXVal, posConfig);
+  }, []);
+
+  //NOTE: useAnimatedStyle gives an error when using multiple objects for transform
+  //@ts-expect-error
+  const waveStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { rotate: `${waveRotation.value}deg` },
+        { translateX: wavePosX.value },
+        { translateY: wavePosX.value * -3 },
+      ],
+    };
+  });
+
+  return (
+    <SafeAreaView className="bg-primary h-full">
       <FlatList
         data={posts}
         keyExtractor={(item) => item.$id.toString()}
@@ -98,9 +144,20 @@ const home = () => {
                 <Text className="font-pmedium text-sm text-gray-100">
                   Welcome Back
                 </Text>
-                <Text className="text-2xl font-psemibold text-white">
-                  {user.username}
-                </Text>
+                <View className="flex-row">
+                  <Text
+                    className="max-w-[200px] text-2xl font-psemibold text-white"
+                    numberOfLines={1}
+                  >
+                    {user.username}fdsfdsffsdfdsfdsfdsf
+                  </Text>
+                  <Animated.Text
+                    className="text-2xl font-psemibold ml-4 mb-3"
+                    style={[waveStyle]}
+                  >
+                    👋
+                  </Animated.Text>
+                </View>
               </View>
 
               <View className="mt-1.5">

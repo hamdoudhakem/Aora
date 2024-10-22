@@ -1,3 +1,4 @@
+import React from "react";
 import { StyleSheet, Text, View, StatusBar } from "react-native";
 import { useFonts } from "expo-font";
 import { Slot, SplashScreen } from "expo-router";
@@ -30,13 +31,16 @@ export default function Layout() {
 
   return (
     <>
-      <StatusBar barStyle="light-content"/>
+      <StatusBar barStyle="light-content" />
       <GlobalProvider>
         <Stack>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="search/[query]" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="search/[query]"
+            options={{ headerShown: false }}
+          />
         </Stack>
       </GlobalProvider>
     </>
